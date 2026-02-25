@@ -5,9 +5,10 @@ interface RouteCardProps {
     route: Route;
     isSelected: boolean;
     onClick: () => void;
+    feasibilitySummary: { green: number, yellow: number, red: number } | null;
 }
 
-const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick }) => {
+const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick, feasibilitySummary }) => {
     return (
         <div
             onClick={onClick}
@@ -57,6 +58,21 @@ const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick }) => {
                     </div>
                 </div>
             </div>
+
+            {feasibilitySummary && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mr-1">Fleet Compatibility</span>
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-50 text-green-600 text-[9px] font-black border border-green-100">
+                        {feasibilitySummary.green}
+                    </span>
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-600 text-[9px] font-black border border-yellow-100">
+                        {feasibilitySummary.yellow}
+                    </span>
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-600 text-[9px] font-black border border-red-100">
+                        {feasibilitySummary.red}
+                    </span>
+                </div>
+            )}
 
             {isSelected && (
                 <div className="absolute top-2 right-2 flex items-center">

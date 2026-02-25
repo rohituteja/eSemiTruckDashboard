@@ -25,4 +25,5 @@ export interface FeasibilityResult {
     status: 'green' | 'yellow' | 'red' | string;
     arrival_soc: number;      // Predicted SoC % at destination
     energy_required_kwh: number;
+    charge_time_mins: number | null;
 }

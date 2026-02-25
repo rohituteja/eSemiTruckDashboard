@@ -10,6 +10,7 @@ function App() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [feasibilityMap, setFeasibilityMap] = useState<Record<string, FeasibilityResult>>({});
+  const [allRouteFeasibility, setAllRouteFeasibility] = useState<Record<string, FeasibilityResult[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
 
   // Initial data fetch
@@ -22,6 +23,21 @@ function App() {
         ]);
         setTrucks(truckData);
         setRoutes(routeData);
+
+        // Fetch feasibility for ALL routes in parallel
+        const allFeas = await Promise.all(
+          routeData.map(async (route) => ({
+            id: route.id,
+            results: await fetchFeasibility(route.id)
+          }))
+        );
+
+        const allFeasMap = allFeas.reduce((acc, curr) => {
+          acc[curr.id] = curr.results;
+          return acc;
+        }, {} as Record<string, FeasibilityResult[]>);
+
+        setAllRouteFeasibility(allFeasMap);
       } catch (error) {
         console.error('Failed to initialize dashboard:', error);
       } finally {
@@ -73,6 +89,15 @@ function App() {
       return feasB.arrival_soc - feasA.arrival_soc;
     });
   }, [trucks, selectedRouteId, feasibilityMap]);
+
+  const bestMatchTruckId = useMemo(() => {
+    if (!selectedRouteId) return null;
+    const best = sortedTrucks.find(truck => {
+      const feasibility = feasibilityMap[truck.id];
+      return feasibility?.status === 'green' && truck.status === 'ready';
+    });
+    return best?.id || null;
+  }, [sortedTrucks, feasibilityMap, selectedRouteId]);
 
   if (loading) {
     return (
@@ -136,6 +161,7 @@ function App() {
                 <TruckCard
                   truck={truck}
                   feasibility={feasibilityMap[truck.id] || null}
+                  isBestMatch={truck.id === bestMatchTruckId}
                 />
               </div>
             ))}
@@ -150,14 +176,24 @@ function App() {
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4">
-            {routes.map(route => (
-              <RouteCard
-                key={route.id}
-                route={route}
-                isSelected={selectedRouteId === route.id}
-                onClick={() => handleRouteClick(route.id)}
-              />
-            ))}
+            {routes.map(route => {
+              const routeResults = allRouteFeasibility[route.id] || [];
+              const summary = routeResults.length > 0 ? {
+                green: routeResults.filter(f => f.status === 'green').length,
+                yellow: routeResults.filter(f => f.status === 'yellow').length,
+                red: routeResults.filter(f => f.status === 'red').length,
+              } : null;
+
+              return (
+                <RouteCard
+                  key={route.id}
+                  route={route}
+                  isSelected={selectedRouteId === route.id}
+                  onClick={() => handleRouteClick(route.id)}
+                  feasibilitySummary={summary}
+                />
+              );
+            })}
           </div>
         </section>
       </main>

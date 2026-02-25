@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
+import math
 from models import Truck, Route, FeasibilityResult
 
 app = FastAPI()
@@ -80,18 +81,28 @@ async def get_route_feasibility(route_id: str):
     weight_factor = 0.00004  # kWh per mile per lb
     
     for truck in MOCK_TRUCKS:
-        # Energy calculation logic
-        # energy_required = (base_consumption + weight_factor * route.load_lbs) * route.distance_miles * route.terrain_multiplier
-        energy_required = (route.base_consumption + weight_factor * route.load_lbs) * route.distance_miles * route.terrain_multiplier
-        energy_available = (truck.soc / 100) * truck.capacity_kwh
+        # 1. Use effective battery capacity instead of raw capacity
+        effective_capacity = truck.capacity_kwh * (truck.soh / 100)
         
-        arrival_soc = ((energy_available - energy_required) / truck.capacity_kwh) * 100
+        # 2. Use combined load (truck + route) in the weight factor
+        total_load = truck.load_lbs + route.load_lbs
+        
+        # 3. Use effective_capacity and total_load in formulas
+        energy_required = (route.base_consumption + weight_factor * total_load) * route.distance_miles * route.terrain_multiplier
+        energy_available = (truck.soc / 100) * effective_capacity
+        
+        arrival_soc = ((energy_available - energy_required) / effective_capacity) * 100
         
         # Status rules
+        charge_time_mins = None
         if arrival_soc >= 15:
             status = "green"
         elif arrival_soc >= 0:
             status = "yellow"
+            # Calculate the energy deficit needed to reach 15% SoC
+            deficit_kwh = (0.15 - (arrival_soc / 100)) * effective_capacity
+            # Calculate charge_time_mins: 1% charge = 4 mins (or 5% = 20 mins)
+            charge_time_mins = math.ceil(deficit_kwh / effective_capacity * 100 / 5) * 20
         else:
             status = "red"
             
@@ -99,7 +110,8 @@ async def get_route_feasibility(route_id: str):
             truck_id=truck.id,
             status=status,
             arrival_soc=round(arrival_soc, 2),
-            energy_required_kwh=round(energy_required, 2)
+            energy_required_kwh=round(energy_required, 2),
+            charge_time_mins=charge_time_mins
         ))
     
     # Sort by arrival_soc descending

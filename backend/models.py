@@ -26,3 +26,4 @@ class FeasibilityResult(BaseModel):
     status: str             # "green" | "yellow" | "red"
     arrival_soc: float      # Predicted SoC % at destination
     energy_required_kwh: float
+    charge_time_mins: Optional[int] = None
