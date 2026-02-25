@@ -3,7 +3,7 @@ import type { Truck, Route, FeasibilityResult } from './types';
 import { fetchTrucks, fetchRoutes, fetchFeasibility } from './api';
 import TruckCard from './components/TruckCard';
 import RouteCard from './components/RouteCard';
-import './styles/App.css';
+// import './styles/App.css';
 
 function App() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -113,7 +113,7 @@ function App() {
     if (!selectedRouteId) return null;
     const best = sortedTrucks.find(truck => {
       const feasibility = feasibilityMap[truck.id];
-      return feasibility?.status === 'green' && truck.status === 'ready';
+      return feasibility?.status === 'green' && (truck.status === 'ready' || truck.status === 'charging');
     });
     return best?.id || null;
   }, [sortedTrucks, feasibilityMap, selectedRouteId]);

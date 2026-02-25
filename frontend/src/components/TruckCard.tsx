@@ -24,7 +24,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
         return () => clearTimeout(timer);
     }, [truck.soc]);
 
-    const isAvailable = truck.status === 'ready';
+    const isAvailable = truck.status === 'ready' || truck.status === 'charging';
 
     // Border and status highlight based on feasibility
     const getFeasibilityStyles = () => {
@@ -57,6 +57,25 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
         if (soc > 50) return 'bg-green-500';
         if (soc >= 20) return 'bg-yellow-500';
         return 'bg-red-500';
+    };
+
+    // Helper to format stop time for the leg table
+    const formatLegStopTime = (leg: any) => {
+        const activities = [];
+        if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
+        else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
+        else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
+
+        let res = activities[0] || "";
+        if (leg.used_charger && leg.charge_time_mins > 0) {
+            if (res) res += ` + ${leg.charge_time_mins}m charge`;
+            else res = `${leg.charge_time_mins}m charge`;
+        }
+        return res || "—";
+    };
+
+    const handleDispatch = () => {
+        alert(`Truck ${truck.id} (${truck.name}) dispatched!`);
     };
 
     // Status badge logic
@@ -173,18 +192,34 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                     </div>
                                 </div>
 
-                                <div className="mb-3">
+                                <div className="mb-3 flex flex-wrap gap-2 items-center">
                                     <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
                                         Route Range Req: {feasibility.energy_required_kwh.toFixed(0)} kWh ({(feasibility.energy_required_kwh / (truck.soh / 100 * truck.capacity_kwh) * 100).toFixed(0)}% of capacity)
                                     </span>
+                                    {feasibility.energy_cost_estimate != null && (
+                                        <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                            Est. Cost: ${feasibility.energy_cost_estimate.toFixed(2)}
+                                        </span>
+                                    )}
                                 </div>
 
-                                <button
-                                    onClick={() => setShowLegs(!showLegs)}
-                                    className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight hover:text-indigo-800 transition-colors"
-                                >
-                                    {showLegs ? 'Hide leg details ▴' : 'Show leg details ▾'}
-                                </button>
+                                <div className="flex items-center justify-between mb-2">
+                                    <button
+                                        onClick={() => setShowLegs(!showLegs)}
+                                        className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight hover:text-indigo-800 transition-colors"
+                                    >
+                                        {showLegs ? 'Hide leg details ▴' : 'Show leg details ▾'}
+                                    </button>
+
+                                    {isAvailable && feasibility.status !== 'red' && (
+                                        <button
+                                            onClick={handleDispatch}
+                                            className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded hover:bg-indigo-700 transition-all shadow-sm active:scale-95"
+                                        >
+                                            Dispatch Truck
+                                        </button>
+                                    )}
+                                </div>
 
                                 {showLegs && (
                                     <div className="mt-2 overflow-x-auto border rounded border-slate-100 shadow-sm">
@@ -214,19 +249,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                                             {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
                                                         </td>
                                                         <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
-                                                            {(() => {
-                                                                const activities = [];
-                                                                if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
-                                                                else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
-                                                                else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
-
-                                                                let res = activities[0] || "";
-                                                                if (leg.used_charger && leg.charge_time_mins > 0) {
-                                                                    if (res) res += ` + ${leg.charge_time_mins}m charge`;
-                                                                    else res = `${leg.charge_time_mins}m charge`;
-                                                                }
-                                                                return res || "—";
-                                                            })()}
+                                                            {formatLegStopTime(leg)}
                                                         </td>
                                                     </tr>
                                                 ))}
