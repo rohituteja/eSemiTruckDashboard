@@ -7,6 +7,7 @@ export interface Truck {
     load_lbs: number;         // Current cargo load
     status: 'ready' | 'charging' | 'maintenance' | string;
     charge_eta_mins: number | null; // Only set if status is "charging"
+    range_miles: number | null;
 }
 
 export interface Stop {
@@ -57,5 +58,8 @@ export interface FeasibilityResult {
     stops_required: number;
     no_charge_needed: boolean;
     not_available: boolean;
+    feasible_after_precharge: boolean;
+    precharge_mins: number | null;
+    precharge_kwh: number | null;
     leg_details: LegDetail[];
 }

@@ -129,7 +129,11 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div className="bg-slate-50 p-2 rounded border border-slate-100">
+                        <span className="text-gray-400 font-medium uppercase text-[9px] block">Est. Range</span>
+                        <span className="font-bold text-gray-900">{truck.range_miles != null ? `${truck.range_miles.toFixed(0)} mi` : "—"}</span>
+                    </div>
                     <div className="bg-slate-50 p-2 rounded border border-slate-100">
                         <span className="text-gray-400 font-medium uppercase text-[9px] block">State of Health</span>
                         <span className="font-bold text-gray-900">{truck.soh}%</span>
@@ -167,6 +171,12 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                             {feasibility.stops_required} stops
                                         </span>
                                     </div>
+                                </div>
+
+                                <div className="mb-3">
+                                    <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                                        Route Range Req: {feasibility.energy_required_kwh.toFixed(0)} kWh ({(feasibility.energy_required_kwh / (truck.soh / 100 * truck.capacity_kwh) * 100).toFixed(0)}% of capacity)
+                                    </span>
                                 </div>
 
                                 <button
@@ -225,11 +235,27 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                     </div>
                                 )}
 
-                                {feasibility.status === 'red' && !showLegs && (
-                                    <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                        INFEASIBLE
-                                    </p>
+                                {feasibility.status === 'red' && (
+                                    <>
+                                        {feasibility.feasible_after_precharge ? (
+                                            <div className="mt-2 text-[10px] bg-amber-50 border border-amber-200 rounded p-2">
+                                                <p className="font-bold text-amber-800 flex items-center gap-1 mb-1">
+                                                    <span>⚡</span> Available after depot pre-charge
+                                                </p>
+                                                <p className="text-amber-700">
+                                                    Charge needed: <span className="font-bold">{feasibility.precharge_kwh?.toFixed(1)} kWh</span> (~{feasibility.precharge_mins} min at 150 kW)
+                                                </p>
+                                                <p className="text-amber-600 italic mt-1">
+                                                    After charging, this truck can complete the route.
+                                                </p>
+                                            </div>
+                                        ) : !showLegs && (
+                                            <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                                INFEASIBLE
+                                            </p>
+                                        )}
+                                    </>
                                 )}
                             </>
                         )}

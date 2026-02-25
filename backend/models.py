@@ -34,6 +34,7 @@ class Truck(BaseModel):
     load_lbs: float         # Current cargo load
     status: str             # "ready" | "charging" | "maintenance"
     charge_eta_mins: Optional[int] = None  # Only set if status is "charging"
+    range_miles: float | None = None
 
 class Route(BaseModel):
     id: str
@@ -56,4 +57,7 @@ class FeasibilityResult(BaseModel):
     stops_required: int = 0
     no_charge_needed: bool = True
     not_available: bool = False
+    feasible_after_precharge: bool = False
+    precharge_mins: int | None = None
+    precharge_kwh: float | None = None
     leg_details: list[LegDetail] = []
