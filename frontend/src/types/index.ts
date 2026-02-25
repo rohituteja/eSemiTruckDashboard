@@ -20,10 +20,25 @@ export interface Route {
     base_consumption: number; // kWh per mile baseline
 }
 
+export interface LegDetail {
+    leg_number: number;
+    distance_miles: number;
+    start_soc: number;
+    end_soc: number;
+    load_lbs: number;
+    charge_added_kwh: number;
+    charge_time_mins: number;
+    unload_lbs: number;
+    used_charger: boolean;
+}
+
 export interface FeasibilityResult {
     truck_id: string;
     status: 'green' | 'yellow' | 'red' | string;
     arrival_soc: number;      // Predicted SoC % at destination
     energy_required_kwh: number;
     charge_time_mins: number | null;
+    stops_required: number;
+    no_charge_needed: boolean;
+    leg_details: LegDetail[];
 }

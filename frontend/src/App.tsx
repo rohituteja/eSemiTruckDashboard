@@ -9,7 +9,6 @@ function App() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
-  const [feasibilityMap, setFeasibilityMap] = useState<Record<string, FeasibilityResult>>({});
   const [allRouteFeasibility, setAllRouteFeasibility] = useState<Record<string, FeasibilityResult[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -47,31 +46,25 @@ function App() {
     initData();
   }, []);
 
-  const handleRouteClick = async (routeId: string) => {
-    if (selectedRouteId === routeId) {
-      setSelectedRouteId(null);
-      setFeasibilityMap({});
-      return;
-    }
-
-    setSelectedRouteId(routeId);
-    try {
-      const feasibilityData = await fetchFeasibility(routeId);
-      const mapping = feasibilityData.reduce((acc, curr) => {
-        acc[curr.truck_id] = curr;
-        return acc;
-      }, {} as Record<string, FeasibilityResult>);
-      setFeasibilityMap(mapping);
-    } catch (error) {
-      console.error('Error calculating feasibility:', error);
-      setFeasibilityMap({});
-    }
+  const handleRouteClick = (routeId: string) => {
+    setSelectedRouteId(prev => prev === routeId ? null : routeId);
   };
+
+  const feasibilityMap = useMemo(() => {
+    if (!selectedRouteId || !allRouteFeasibility[selectedRouteId]) return {};
+    return allRouteFeasibility[selectedRouteId].reduce((acc, curr) => {
+      acc[curr.truck_id] = curr;
+      return acc;
+    }, {} as Record<string, FeasibilityResult>);
+  }, [allRouteFeasibility, selectedRouteId]);
 
   const feasibilitySummary = useMemo(() => {
     if (!selectedRouteId) return null;
+    const results = Object.values(feasibilityMap);
+    if (results.length === 0) return null;
+
     const stats = { green: 0, yellow: 0, red: 0 };
-    Object.values(feasibilityMap).forEach(f => {
+    results.forEach(f => {
       if (f.status === 'green') stats.green++;
       else if (f.status === 'yellow') stats.yellow++;
       else if (f.status === 'red') stats.red++;

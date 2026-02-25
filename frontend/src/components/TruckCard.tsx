@@ -9,6 +9,12 @@ interface TruckCardProps {
 
 const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
     const [animatedSoc, setAnimatedSoc] = useState(0);
+    const [showLegs, setShowLegs] = useState(false);
+
+    // Reset showLegs when feasibility changes
+    useEffect(() => {
+        setShowLegs(false);
+    }, [feasibility]);
 
     // Animate SoC from 0 to value on mount
     useEffect(() => {
@@ -141,23 +147,69 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                 {/* Feasibility Data */}
                 {feasibility && (
                     <div className="pt-3 border-t border-gray-100">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider ${getFeasibilityBadgeStyles()}`}>
-                                Arrival SoC: {feasibility.arrival_soc.toFixed(1)}%
-                            </span>
-                            <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
-                                Energy: {feasibility.energy_required_kwh.toFixed(1)} kWh
-                            </span>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex flex-wrap gap-2">
+                                <span className={`px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider ${getFeasibilityBadgeStyles()}`}>
+                                    Arrival SoC: {feasibility.arrival_soc.toFixed(1)}%
+                                </span>
+                                {!feasibility.no_charge_needed && feasibility.charge_time_mins && (
+                                    <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-yellow-50 text-yellow-700">
+                                        +{Math.floor(feasibility.charge_time_mins / 60)}h {feasibility.charge_time_mins % 60}m added
+                                    </span>
+                                )}
+                                <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
+                                    {feasibility.stops_required} stops
+                                </span>
+                            </div>
                         </div>
 
-                        {feasibility.status === 'yellow' && (
-                            <p className="text-[10px] font-bold text-yellow-600 flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.365-.636 1.283-.636 1.648 0 l7.625 13.257c.365.636-.093 1.442-.824 1.442H3.294c-.731 0-1.19-.806-.827-1.442L8.257 3.099zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                EN-ROUTE CHARGE NEEDED {feasibility.charge_time_mins ? `(+${feasibility.charge_time_mins} MIN)` : ''}
-                            </p>
+                        <button
+                            onClick={() => setShowLegs(!showLegs)}
+                            className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight hover:text-indigo-800 transition-colors"
+                        >
+                            {showLegs ? 'Hide leg details ▴' : 'Show leg details ▾'}
+                        </button>
+
+                        {showLegs && (
+                            <div className="mt-2 overflow-x-auto border rounded border-slate-100 shadow-sm">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-100 text-[9px] uppercase tracking-tighter text-gray-500 font-black">
+                                            <th className="px-1.5 py-1 border-b">Leg</th>
+                                            <th className="px-1.5 py-1 border-b">Miles</th>
+                                            <th className="px-1.5 py-1 border-b">Start</th>
+                                            <th className="px-1.5 py-1 border-b">End</th>
+                                            <th className="px-1.5 py-1 border-b text-center">Load</th>
+                                            <th className="px-1.5 py-1 border-b text-right">Charged</th>
+                                            <th className="px-1.5 py-1 border-b text-right">Stop Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-[10px] font-medium text-gray-700">
+                                        {feasibility.leg_details.map((leg, idx) => (
+                                            <tr key={idx} className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
+                                                <td className="px-1.5 py-1 border-b text-gray-500 font-mono">{leg.leg_number}</td>
+                                                <td className="px-1.5 py-1 border-b">{leg.distance_miles.toFixed(0)}</td>
+                                                <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.start_soc.toFixed(1)}%</td>
+                                                <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.end_soc.toFixed(1)}%</td>
+                                                <td className="px-1.5 py-1 border-b text-center">{(leg.load_lbs / 1000).toFixed(1)}k</td>
+                                                <td className="px-1.5 py-1 border-b text-right whitespace-nowrap">
+                                                    {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
+                                                </td>
+                                                <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
+                                                    {leg.unload_lbs > 0
+                                                        ? `30m unl${leg.charge_time_mins > 0 ? ` + ${leg.charge_time_mins}m` : ''}`
+                                                        : (leg.charge_time_mins > 0 ? `${leg.charge_time_mins}m` : '—')
+                                                    }
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
-                        {feasibility.status === 'red' && (
-                            <p className="text-[10px] font-bold text-red-600 flex items-center gap-1">
+
+                        {feasibility.status === 'red' && !showLegs && (
+                            <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                                 INFEASIBLE
                             </p>
