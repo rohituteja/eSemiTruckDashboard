@@ -7,7 +7,8 @@ class ChargingStation(BaseModel):
 
 class Stop(BaseModel):
     mile_marker: float
-    unload_lbs: float
+    unload_lbs: float = 0
+    pickup_lbs: float = 0
     has_charger: bool
     charge_rate_kw: float | None = None
 
@@ -16,7 +17,9 @@ class LegDetail(BaseModel):
     distance_miles: float
     start_soc: float
     end_soc: float
-    load_lbs: float
+    start_load_lbs: float
+    end_load_lbs: float
+    pickup_lbs: float
     charge_added_kwh: float
     charge_time_mins: int
     unload_lbs: float
@@ -37,7 +40,6 @@ class Route(BaseModel):
     name: str
     distance_miles: float
     elevation_gain_ft: float
-    load_lbs: float
     priority: str           # "urgent" | "standard"
     terrain_multiplier: float
     base_consumption: float # kWh per mile baseline

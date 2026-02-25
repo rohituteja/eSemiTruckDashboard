@@ -179,7 +179,8 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                             <th className="px-1.5 py-1 border-b">Miles</th>
                                             <th className="px-1.5 py-1 border-b">Start</th>
                                             <th className="px-1.5 py-1 border-b">End</th>
-                                            <th className="px-1.5 py-1 border-b text-center">Load</th>
+                                            <th className="px-1.5 py-1 border-b text-center">Load In</th>
+                                            <th className="px-1.5 py-1 border-b text-center">Load Out</th>
                                             <th className="px-1.5 py-1 border-b text-right">Charged</th>
                                             <th className="px-1.5 py-1 border-b text-right">Stop Time</th>
                                         </tr>
@@ -191,15 +192,25 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                                 <td className="px-1.5 py-1 border-b">{leg.distance_miles.toFixed(0)}</td>
                                                 <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.start_soc.toFixed(1)}%</td>
                                                 <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.end_soc.toFixed(1)}%</td>
-                                                <td className="px-1.5 py-1 border-b text-center">{(leg.load_lbs / 1000).toFixed(1)}k</td>
+                                                <td className="px-1.5 py-1 border-b text-center">{(leg.start_load_lbs / 1000).toFixed(1)}k</td>
+                                                <td className="px-1.5 py-1 border-b text-center">{(leg.end_load_lbs / 1000).toFixed(1)}k</td>
                                                 <td className="px-1.5 py-1 border-b text-right whitespace-nowrap">
                                                     {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
                                                 </td>
                                                 <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
-                                                    {leg.unload_lbs > 0
-                                                        ? `30m unl${leg.charge_time_mins > 0 ? ` + ${leg.charge_time_mins}m` : ''}`
-                                                        : (leg.charge_time_mins > 0 ? `${leg.charge_time_mins}m` : '—')
-                                                    }
+                                                    {(() => {
+                                                        const activities = [];
+                                                        if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
+                                                        else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
+                                                        else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
+
+                                                        let res = activities[0] || "";
+                                                        if (leg.used_charger && leg.charge_time_mins > 0) {
+                                                            if (res) res += ` + ${leg.charge_time_mins}m charge`;
+                                                            else res = `${leg.charge_time_mins}m charge`;
+                                                        }
+                                                        return res || "—";
+                                                    })()}
                                                 </td>
                                             </tr>
                                         ))}

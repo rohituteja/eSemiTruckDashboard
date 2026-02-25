@@ -14,10 +14,11 @@ export interface Route {
     name: string;
     distance_miles: number;
     elevation_gain_ft: number;
-    load_lbs: number;
     priority: 'urgent' | 'standard' | string;
     terrain_multiplier: number;
     base_consumption: number; // kWh per mile baseline
+    stops: any[];             // Added to match backend
+    charging_stations: any[]; // Added to match backend
 }
 
 export interface LegDetail {
@@ -25,7 +26,9 @@ export interface LegDetail {
     distance_miles: number;
     start_soc: number;
     end_soc: number;
-    load_lbs: number;
+    start_load_lbs: number;
+    end_load_lbs: number;
+    pickup_lbs: number;
     charge_added_kwh: number;
     charge_time_mins: number;
     unload_lbs: number;

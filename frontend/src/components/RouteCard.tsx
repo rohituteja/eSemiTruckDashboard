@@ -49,12 +49,16 @@ const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick, feasibility
                         <span className="text-gray-900 font-bold">+{route.elevation_gain_ft.toLocaleString()} ft</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Payload</span>
-                        <span className="text-gray-900 font-bold">{route.load_lbs.toLocaleString()} lbs</span>
-                    </div>
-                    <div className="flex flex-col">
                         <span className="text-gray-500 text-[11px] uppercase font-semibold">Terrain</span>
                         <span className="text-gray-900 font-bold">{route.terrain_multiplier}x</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Stops</span>
+                        <span className="text-gray-900 font-bold">{route.stops?.length || 0}</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Chargers</span>
+                        <span className="text-gray-900 font-bold">{route.charging_stations?.length || 0}</span>
                     </div>
                 </div>
             </div>
