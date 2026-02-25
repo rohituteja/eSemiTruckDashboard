@@ -227,10 +227,14 @@ async def get_route_feasibility(route_id: str):
         tot_unload_time_mins = 0
         tot_stops_required = 0
         
+        node_unload_times = [0] * len(nodes)
+        node_charge_times = [0] * len(nodes)
+        
         # If the route requires a load (unload before sufficient pickups), we must have loaded it at the depot.
         # Add 30 minutes for loading at the depot before dispatch.
         if required_depot_payload > 0:
             tot_unload_time_mins += 30
+            node_unload_times[0] = 30
 
         no_charge_req = True
         legs = []
@@ -276,9 +280,11 @@ async def get_route_feasibility(route_id: str):
                     charge_time_mins = math.ceil(charge_added_kwh / charge_rate * 60)
                     curr_soc += deficit_soc
                     tot_charge_time_mins += charge_time_mins
+                    node_charge_times[i] = charge_time_mins
                     no_charge_req = False
                     used_charger = True
 
+            # --- STEP 2: Drive to the ARRIVAL node ---
             start_soc = curr_soc
             will_arrive_soc = curr_soc - energy_needed_soc
             if will_arrive_soc < MIN_BUFFER_SOC - 1e-9:
@@ -297,6 +303,7 @@ async def get_route_feasibility(route_id: str):
                 pickup_lbs = to_node.get('pickup_lbs', 0)
                 end_load = max(0, curr_load - unload_lbs + pickup_lbs)
                 tot_unload_time_mins += 30
+                node_unload_times[i + 1] = 30
                 tot_stops_required += 1
 
             legs.append(LegDetail(
@@ -314,12 +321,14 @@ async def get_route_feasibility(route_id: str):
             ))
             curr_load = end_load
 
+        tot_stop_time_mins = sum(max(u, c) for u, c in zip(node_unload_times, node_charge_times))
+
         return {
             "feasible": is_feasible,
             "arrival_soc": round(curr_soc * 100, 2),
             "total_energy_kwh": tot_energy_kwh,
             "total_charge_time_mins": tot_charge_time_mins,
-            "total_stop_time_mins": tot_charge_time_mins + tot_unload_time_mins,
+            "total_stop_time_mins": tot_stop_time_mins,
             "stops_required": tot_stops_required,
             "no_charge_needed": no_charge_req,
             "leg_details": legs

@@ -3,7 +3,6 @@ import type { Truck, Route, FeasibilityResult } from './types';
 import { fetchTrucks, fetchRoutes, fetchFeasibility } from './api';
 import TruckCard from './components/TruckCard';
 import RouteCard from './components/RouteCard';
-// import './styles/App.css';
 
 function App() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -12,6 +11,7 @@ function App() {
   const [allRouteFeasibility, setAllRouteFeasibility] = useState<Record<string, FeasibilityResult[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   // Initial data fetch
   const initData = async () => {
@@ -39,6 +39,7 @@ function App() {
       }, {} as Record<string, FeasibilityResult[]>);
 
       setAllRouteFeasibility(allFeasMap);
+      setLastRefreshed(new Date());
     } catch (err) {
       console.error('Failed to initialize dashboard:', err);
       setError('Failed to connect to dispatch API. Please ensure the backend is running on localhost:8000.');
@@ -181,8 +182,13 @@ function App() {
             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-500"></span>Charge Needed</div>
             <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"></span>Infeasible</div>
           </div>
-          <div className="text-xs text-slate-400 font-mono">
-            System: Active · Nodes: {trucks.length}
+          <div className="text-xs text-slate-400 font-mono text-right">
+            <div>System: Active · Nodes: {trucks.length}</div>
+            {lastRefreshed && (
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Last Refreshed: {lastRefreshed.toLocaleTimeString()}
+              </div>
+            )}
           </div>
         </div>
       </nav>

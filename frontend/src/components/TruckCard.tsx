@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import type { Truck, FeasibilityResult } from '../types';
+import type { Truck, FeasibilityResult, LegDetail } from '../types';
 
 interface TruckCardProps {
     truck: Truck;
@@ -60,7 +60,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
     };
 
     // Helper to format stop time for the leg table
-    const formatLegStopTime = (leg: any) => {
+    const formatLegStopTime = (leg: LegDetail) => {
         const activities = [];
         if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
         else if (leg.unload_lbs > 0) activities.push("30 min (unload)");

@@ -66,13 +66,13 @@ const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick, feasibility
             {feasibilitySummary && (
                 <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2">
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mr-1">Fleet Compatibility</span>
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-50 text-green-600 text-[9px] font-black border border-green-100">
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-50 text-green-600 text-[9px] font-black border border-green-100" title="Feasible without charging">
                         {feasibilitySummary.green}
                     </span>
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-600 text-[9px] font-black border border-yellow-100">
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-yellow-50 text-yellow-600 text-[9px] font-black border border-yellow-100" title="Feasible with charging">
                         {feasibilitySummary.yellow}
                     </span>
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-600 text-[9px] font-black border border-red-100">
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-50 text-red-600 text-[9px] font-black border border-red-100" title="Infeasible">
                         {feasibilitySummary.red}
                     </span>
                 </div>
