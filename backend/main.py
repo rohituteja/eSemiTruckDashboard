@@ -154,7 +154,7 @@ async def get_route_feasibility(route_id: str):
         raise HTTPException(status_code=404, detail="Route not found")
     
     results = []
-    weight_factor = 0.000004  # kWh per lb per mile (realistic: ~0.3 kWh/mile at 80k lbs)
+    weight_factor = 0.00004  # kWh per lb per mile (realistic: ~0.3 kWh/mile at 80k lbs)
     MIN_BUFFER_SOC = 0.15
     
     # Build waypoints
@@ -178,6 +178,21 @@ async def get_route_feasibility(route_id: str):
     waypoints.append({'mile_marker': route.distance_miles, 'type': 'destination'})
 
     for truck in MOCK_TRUCKS:
+        if truck.status != "ready":
+            results.append(FeasibilityResult(
+                truck_id=truck.id,
+                status="red",
+                arrival_soc=0.0,
+                energy_required_kwh=0.0,
+                charge_time_mins=None,
+                total_stop_time_mins=None,
+                stops_required=0,
+                no_charge_needed=False,
+                not_available=True,
+                leg_details=[]
+            ))
+            continue
+
         effective_capacity = truck.capacity_kwh * (truck.soh / 100)
         current_soc = truck.soc / 100
         current_load = truck.load_lbs
@@ -254,7 +269,6 @@ async def get_route_feasibility(route_id: str):
                     charge_time_mins = math.ceil(charge_added_kwh / charge_rate * 60)
                     current_soc += deficit_soc
                     total_charge_time_mins += charge_time_mins
-                    total_stops_required += 1
                     no_charge_needed = False
                     used_charger = True
 
@@ -324,15 +338,17 @@ async def get_route_feasibility(route_id: str):
             status=status,
             arrival_soc=arrival_soc,
             energy_required_kwh=round(total_energy_kwh, 2),
-            charge_time_mins=total_stop_time_mins,
+            charge_time_mins=total_charge_time_mins,
+            total_stop_time_mins=total_stop_time_mins,
             stops_required=total_stops_required,
             no_charge_needed=no_charge_needed,
             leg_details=leg_details
         ))
     
-    # Sort results: no_charge_needed=True greens first, then by total_charge_time_mins ascending, 
-    # then by arrival_soc descending
+    # Sort results: not_available trucks last, then no_charge_needed greens, 
+    # then by charge_time_mins ascending, then by arrival_soc descending
     results.sort(key=lambda x: (
+        x.not_available,
         not (x.status == "green" and x.no_charge_needed),
         x.charge_time_mins if x.charge_time_mins is not None else 0,
         -x.arrival_soc

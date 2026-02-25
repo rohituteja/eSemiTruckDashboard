@@ -9,6 +9,19 @@ export interface Truck {
     charge_eta_mins: number | null; // Only set if status is "charging"
 }
 
+export interface Stop {
+    mile_marker: number;
+    unload_lbs: number;
+    pickup_lbs: number;
+    has_charger: boolean;
+    charge_rate_kw: number | null;
+}
+
+export interface ChargingStation {
+    mile_marker: number;
+    charge_rate_kw: number;
+}
+
 export interface Route {
     id: string;
     name: string;
@@ -17,8 +30,8 @@ export interface Route {
     priority: 'urgent' | 'standard' | string;
     terrain_multiplier: number;
     base_consumption: number; // kWh per mile baseline
-    stops: any[];             // Added to match backend
-    charging_stations: any[]; // Added to match backend
+    stops: Stop[];             // Typed
+    charging_stations: ChargingStation[]; // Typed
 }
 
 export interface LegDetail {
@@ -43,5 +56,6 @@ export interface FeasibilityResult {
     charge_time_mins: number | null;
     stops_required: number;
     no_charge_needed: boolean;
+    not_available: boolean;
     leg_details: LegDetail[];
 }

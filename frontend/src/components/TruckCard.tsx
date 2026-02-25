@@ -28,7 +28,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
 
     // Border and status highlight based on feasibility
     const getFeasibilityStyles = () => {
-        if (!feasibility) return 'border-gray-200 bg-white';
+        if (!feasibility || feasibility.not_available) return 'border-gray-200 bg-white';
 
         switch (feasibility.status) {
             case 'green':
@@ -147,83 +147,91 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                 {/* Feasibility Data */}
                 {feasibility && (
                     <div className="pt-3 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex flex-wrap gap-2">
-                                <span className={`px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider ${getFeasibilityBadgeStyles()}`}>
-                                    Arrival SoC: {feasibility.arrival_soc.toFixed(1)}%
-                                </span>
-                                {!feasibility.no_charge_needed && feasibility.charge_time_mins && (
-                                    <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-yellow-50 text-yellow-700">
-                                        +{Math.floor(feasibility.charge_time_mins / 60)}h {feasibility.charge_time_mins % 60}m added
-                                    </span>
-                                )}
-                                <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
-                                    {feasibility.stops_required} stops
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={() => setShowLegs(!showLegs)}
-                            className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight hover:text-indigo-800 transition-colors"
-                        >
-                            {showLegs ? 'Hide leg details ▴' : 'Show leg details ▾'}
-                        </button>
-
-                        {showLegs && (
-                            <div className="mt-2 overflow-x-auto border rounded border-slate-100 shadow-sm">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-100 text-[9px] uppercase tracking-tighter text-gray-500 font-black">
-                                            <th className="px-1.5 py-1 border-b">Leg</th>
-                                            <th className="px-1.5 py-1 border-b">Miles</th>
-                                            <th className="px-1.5 py-1 border-b">Start</th>
-                                            <th className="px-1.5 py-1 border-b">End</th>
-                                            <th className="px-1.5 py-1 border-b text-center">Load In</th>
-                                            <th className="px-1.5 py-1 border-b text-center">Load Out</th>
-                                            <th className="px-1.5 py-1 border-b text-right">Charged</th>
-                                            <th className="px-1.5 py-1 border-b text-right">Stop Time</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="text-[10px] font-medium text-gray-700">
-                                        {feasibility.leg_details.map((leg, idx) => (
-                                            <tr key={idx} className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
-                                                <td className="px-1.5 py-1 border-b text-gray-500 font-mono">{leg.leg_number}</td>
-                                                <td className="px-1.5 py-1 border-b">{leg.distance_miles.toFixed(0)}</td>
-                                                <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.start_soc.toFixed(1)}%</td>
-                                                <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.end_soc.toFixed(1)}%</td>
-                                                <td className="px-1.5 py-1 border-b text-center">{(leg.start_load_lbs / 1000).toFixed(1)}k</td>
-                                                <td className="px-1.5 py-1 border-b text-center">{(leg.end_load_lbs / 1000).toFixed(1)}k</td>
-                                                <td className="px-1.5 py-1 border-b text-right whitespace-nowrap">
-                                                    {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
-                                                </td>
-                                                <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
-                                                    {(() => {
-                                                        const activities = [];
-                                                        if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
-                                                        else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
-                                                        else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
-
-                                                        let res = activities[0] || "";
-                                                        if (leg.used_charger && leg.charge_time_mins > 0) {
-                                                            if (res) res += ` + ${leg.charge_time_mins}m charge`;
-                                                            else res = `${leg.charge_time_mins}m charge`;
-                                                        }
-                                                        return res || "—";
-                                                    })()}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {feasibility.status === 'red' && !showLegs && (
-                            <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                INFEASIBLE
+                        {feasibility.not_available ? (
+                            <p className="text-[10px] text-gray-400 italic">
+                                Unavailable for dispatch — skipped in feasibility analysis
                             </p>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider ${getFeasibilityBadgeStyles()}`}>
+                                            Arrival SoC: {feasibility.arrival_soc.toFixed(1)}%
+                                        </span>
+                                        {!feasibility.no_charge_needed && feasibility.charge_time_mins && (
+                                            <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-yellow-50 text-yellow-700">
+                                                +{Math.floor(feasibility.charge_time_mins / 60)}h {feasibility.charge_time_mins % 60}m added
+                                            </span>
+                                        )}
+                                        <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
+                                            {feasibility.stops_required} stops
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowLegs(!showLegs)}
+                                    className="text-[10px] text-indigo-600 font-bold uppercase tracking-tight hover:text-indigo-800 transition-colors"
+                                >
+                                    {showLegs ? 'Hide leg details ▴' : 'Show leg details ▾'}
+                                </button>
+
+                                {showLegs && (
+                                    <div className="mt-2 overflow-x-auto border rounded border-slate-100 shadow-sm">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-100 text-[9px] uppercase tracking-tighter text-gray-500 font-black">
+                                                    <th className="px-1.5 py-1 border-b">Leg</th>
+                                                    <th className="px-1.5 py-1 border-b">Miles</th>
+                                                    <th className="px-1.5 py-1 border-b">Start</th>
+                                                    <th className="px-1.5 py-1 border-b">End</th>
+                                                    <th className="px-1.5 py-1 border-b text-center">Load In</th>
+                                                    <th className="px-1.5 py-1 border-b text-center">Load Out</th>
+                                                    <th className="px-1.5 py-1 border-b text-right">Charged</th>
+                                                    <th className="px-1.5 py-1 border-b text-right">Stop Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="text-[10px] font-medium text-gray-700">
+                                                {feasibility.leg_details.map((leg, idx) => (
+                                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
+                                                        <td className="px-1.5 py-1 border-b text-gray-500 font-mono">{leg.leg_number}</td>
+                                                        <td className="px-1.5 py-1 border-b">{leg.distance_miles.toFixed(0)}</td>
+                                                        <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.start_soc.toFixed(1)}%</td>
+                                                        <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.end_soc.toFixed(1)}%</td>
+                                                        <td className="px-1.5 py-1 border-b text-center">{(leg.start_load_lbs / 1000).toFixed(1)}k</td>
+                                                        <td className="px-1.5 py-1 border-b text-center">{(leg.end_load_lbs / 1000).toFixed(1)}k</td>
+                                                        <td className="px-1.5 py-1 border-b text-right whitespace-nowrap">
+                                                            {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
+                                                        </td>
+                                                        <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
+                                                            {(() => {
+                                                                const activities = [];
+                                                                if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
+                                                                else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
+                                                                else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
+
+                                                                let res = activities[0] || "";
+                                                                if (leg.used_charger && leg.charge_time_mins > 0) {
+                                                                    if (res) res += ` + ${leg.charge_time_mins}m charge`;
+                                                                    else res = `${leg.charge_time_mins}m charge`;
+                                                                }
+                                                                return res || "—";
+                                                            })()}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+
+                                {feasibility.status === 'red' && !showLegs && (
+                                    <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                        INFEASIBLE
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
                 )}

@@ -52,6 +52,8 @@ class FeasibilityResult(BaseModel):
     arrival_soc: float      # Predicted SoC % at destination
     energy_required_kwh: float
     charge_time_mins: int | None = None
+    total_stop_time_mins: int | None = None
     stops_required: int = 0
     no_charge_needed: bool = True
+    not_available: bool = False
     leg_details: list[LegDetail] = []
