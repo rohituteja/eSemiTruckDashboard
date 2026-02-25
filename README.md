@@ -1,71 +1,53 @@
-# eSemiTruck Dispatch Control Dashboard
+# EV Dispatch Control
 
-A conceptual **Electric Semi-Truck Dispatch Dashboard** designed to optimize fleet operations through real-time operational feasibility analysis. This project showcases a modern full-stack implementation using **FastAPI** and **React + TypeScript (Vite)**.
+A fleet management dashboard for electric semi-trucks. The system uses a physics-based simulation engine to determine route feasibility by modeling battery consumption against dynamic variables like payload and terrain.
 
-## Key Features & Showcases
+## Technical Architecture
 
-- **Advanced Dispatch Engine**: A leg-by-leg physics simulation that calculates route feasibility based on dynamic payloads, terrain, and battery health.
-- **Smart Charging Logic**: Intelligent charging strategies that calculate the minimum required energy to reach the next waypoint or destination with a safety buffer.
-- **Journey Transparency**: Detailed journey transcripts for every truck/route combination, providing a breakdown of SOC, loads, and stop times.
-- **"Best Match" Intelligence**: Instant identification of the most efficient truck available for a selected mission.
-- **Real-time Fleet Monitoring**: Visual tracking of truck status (Ready, Charging, Maintenance) with animated State of Charge (SoC) telemetry.
-- **Fleet Compatibility Summaries**: High-level regional feasibility previews on route cards to assist in strategic planning.
+### Backend: Iterative Simulation Engine (FastAPI)
+The engine performs a leg-by-leg simulation rather than using static range estimates.
+- **Consumption Model**: Calculates energy usage per leg based on `(base_consumption + weight_factor * current_payload) * distance * terrain_multiplier`.
+- **Dynamic Payload**: Adjusts vehicle weight at each stop based on unload/pickup tasks, impacting consumption for all subsequent legs.
+- **Look-Ahead Charging**: At chaque charger, the engine calculates the specific kWh requirement to reach the next viable charging node or destination with a safety margin.
+- **Pre-Charge Logic**: If a truck's current State of Charge (SoC) is insufficient but its capacity is adequate, the engine calculates the specific time required to charge at the depot before dispatch.
 
-## 🏗 Architecture & Design Decisions
+### Frontend: Mission Control UI (React + TypeScript)
+- **High-Density Data**: Displays real-time fleet telemetry and feasibility status across multiple route scenarios.
+- **Simulation Transparency**: Provides a "Leg Detail" audit trail for every result, showing SoC deltas, energy added, and load changes per segment.
+- **Performance**: Uses parallel fetching to evaluate the entire fleet's compatibility for a selected route without UI blocking.
 
-### Backend: The Physics-Based Dispatch Engine
-- **Iterative Journey Simulation**: Moves beyond simple distance/range checks by simulating the truck throughout the specific route nodes (stops, chargers, and destination).
-- **Dynamic Load Modeling**: Accounts for cargo weight reductions at mid-route stops, which directly impacts energy consumption for subsequent legs.
-- **Smart Charging Strategy**: 
-  - **15% Safety Buffer**: Ensures trucks never arrive at a waypoint with critically low battery.
-  - **Dynamic Targets**: Calculates the exact kWh needed to safely reach the next charging point.
-  - **Charging Thresholds**: "Green" status is awarded for routes completed within an efficiency-scaled time window (e.g., `60m + 0.2m/mile`).
-- **Data Integrity**: Uses Pydantic for rigid schema enforcement and FastAPI for high-performance async processing.
+## Engineering Decisions & Tradeoffs
 
-### Frontend: Professional Dispatcher Interface
-- **React + TypeScript**: Built with strict typing for reliable state management across complex feasibility datasets.
-- **Glassmorphism & High-Density UI**: A premium, "mission-control" aesthetic using Tailwind CSS and custom micro-animations.
-- **Interactive Transcripts**: Collapsable tables within Truck Cards provide "Leg-by-Leg" details (Miles, Start/End SOC, Load, Charge Added, and Stop Time).
-- **High Performance**: Parallel fetching patterns ensure that feasibility analysis for an entire fleet remains responsive even for complex routes.
+- **Simulation vs. Range Estimates**: Chose iterative simulation to account for the heavy impact of payload (e.g., 80k lbs vs 20k lbs) on EV efficiency. 
+  - *Tradeoff*: Higher computational overhead per request, mitigated by efficient Python math logic and Pydantic validation.
+- **15% SoC Buffer**: Hard-coded safety floor maintained at all waypoints.
+  - *Rationale*: Critical to account for unforeseen traffic, thermal management, and battery health (SoH).
+- **Efficiency Heuristics**: Status (Green/Yellow/Red) is determined by the ratio of charging downtime to total transit distance.
+  - *Tradeoff*: Simpler than ML-based ETA prediction but provides immediate, explainable results for dispatchers.
+- **Depot Integration**: The depot is modeled as a 150kW charging node to facilitate "Ready for Dispatch" calculations for trucks currently below mission-required SoC.
 
-## 📁 Project Structure
+## Tech Stack
+- **Backend**: FastAPI (Python), Pydantic (Logic/Models), Uvicorn (Server).
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS.
+- **Data**: Mock telemetry representing high-fidelity truck and route datasets.
 
+## Repository Structure
 ```text
-.
-├── /backend          # Python FastAPI services & Physics Engine
-│   ├── main.py       # API Endpoints & Simulation Logic
-│   ├── models.py     # Data schemas (Trucks, Routes, Feasibility, Legs)
-│   └── requirements.txt
-├── /frontend         # Vite React + TypeScript UI
-│   ├── src/components # Modular UI components (TruckCard, RouteCard)
-│   ├── src/api       # API client layer (Fetch-based)
-│   ├── src/types     # Shared TypeScript interfaces
-│   └── src/styles     # Tailwind & Custom CSS
+├── /backend          # API & Physics Engine (main.py, models.py)
+├── /frontend         # React Application (src/components, src/api, src/types)
 └── README.md
 ```
 
-## 🛠 Setup & Installation
+## Setup
 
-### Prerequisites
-- Python 3.8+
-- Node.js 18+
+### Backend
+1. `cd backend`
+2. `python -m venv .venv`
+3. `source .venv/bin/activate` (or `.venv\Scripts\activate` on Windows)
+4. `pip install -r requirements.txt`
+5. `uvicorn main:app --reload`
 
-### 1. Backend Setup
-```bash
-cd backend
-python3 -m venv .venv
-# Activate:
-#  macOS/Linux: source .venv/bin/activate
-#  Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-*API: `http://localhost:8000`*
-
-### 2. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*Frontend: `http://localhost:5173`*
+### Frontend
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
