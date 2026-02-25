@@ -4,39 +4,37 @@ A conceptual **Electric Semi-Truck Dispatch Dashboard** designed to optimize fle
 
 ## Key Features & Showcases
 
-- **Real-time Fleet Monitoring**: Visual tracking of truck status (Ready, Charging, Maintenance) and State of Charge (SoC).
-- **Intelligent Dispatch Selection**: A "Best Match" badge instantly identifies the most compatible available truck for a selected route.
-- **Cross-fleet Route Analysis**: "Fleet Compatibility" summaries on route cards provide a high-level view of regional feasibility before selection.
-- **Dynamic Operational Intelligence**: Intelligent sorting and color-coded status indicators to assist dispatchers in making rapid, data-driven decisions.
-- **Physics-Based Energy Modeling**: A simplified but realistic energy consumption algorithm accounting for rolling resistance and payload factors.
+- **Advanced Dispatch Engine**: A leg-by-leg physics simulation that calculates route feasibility based on dynamic payloads, terrain, and battery health.
+- **Smart Charging Logic**: Intelligent charging strategies that calculate the minimum required energy to reach the next waypoint or destination with a safety buffer.
+- **Journey Transparency**: Detailed journey transcripts for every truck/route combination, providing a breakdown of SOC, loads, and stop times.
+- **"Best Match" Intelligence**: Instant identification of the most efficient truck available for a selected mission.
+- **Real-time Fleet Monitoring**: Visual tracking of truck status (Ready, Charging, Maintenance) with animated State of Charge (SoC) telemetry.
+- **Fleet Compatibility Summaries**: High-level regional feasibility previews on route cards to assist in strategic planning.
 
 ## 🏗 Architecture & Design Decisions
 
-### Backend: Performance & Reliability
-- **FastAPI Core**: Leverages Python 3.8+ for high-performance asynchronous API endpoints.
-- **Physics-Based Estimation Engine**: 
-  - **Formula**: `Energy Required = (Base Consumption + (Weight Factor * Total Load)) * Distance * Terrain Multiplier`
-  - **Total Load**: Combined weight of the truck's current load and the route's cargo.
-  - **Effective Capacity**: Calculations utilize `Truck Capacity * (SOH / 100)` to account for battery degradation over time.
-  - **Minimum Buffer**: Routes are marked as "Feasible" (Green) if arrival SoC >= 15%, "Charge Needed" (Yellow) if between 0-15%, and "Infeasible" (Red) if < 0%.
-- **Charge Time Estimation**: For "Yellow" status trucks, the engine calculates the dynamic charging time required to reach the 15% safety buffer.
-- **Validation**: Pydantic models are used for strict type checking and attribute validation across all endpoints.
+### Backend: The Physics-Based Dispatch Engine
+- **Iterative Journey Simulation**: Moves beyond simple distance/range checks by simulating the truck throughout the specific route nodes (stops, chargers, and destination).
+- **Dynamic Load Modeling**: Accounts for cargo weight reductions at mid-route stops, which directly impacts energy consumption for subsequent legs.
+- **Smart Charging Strategy**: 
+  - **15% Safety Buffer**: Ensures trucks never arrive at a waypoint with critically low battery.
+  - **Dynamic Targets**: Calculates the exact kWh needed to safely reach the next charging point.
+  - **Charging Thresholds**: "Green" status is awarded for routes completed within an efficiency-scaled time window (e.g., `60m + 0.2m/mile`).
+- **Data Integrity**: Uses Pydantic for rigid schema enforcement and FastAPI for high-performance async processing.
 
-### Frontend: Modern & Responsive
-- **React + TypeScript**: High-performance UI framework with a strong type system for predictable state management.
-- **Vite Build Tool**: Modern build system for fast HMR and optimized production bundles.
-- **Reactive Dashboard**:
-  - **Pre-fetching**: Feasibility for all routes is fetched in parallel on mount, enabling immediate visual feedback.
-  - **Dispatcher Assistance**: Automatic "Best Match" identification for the highest-ranked available vehicle.
-  - **Situational Awareness**: Professional UI with custom animations, glassmorphism, and color-coded telemetry.
+### Frontend: Professional Dispatcher Interface
+- **React + TypeScript**: Built with strict typing for reliable state management across complex feasibility datasets.
+- **Glassmorphism & High-Density UI**: A premium, "mission-control" aesthetic using Tailwind CSS and custom micro-animations.
+- **Interactive Transcripts**: Collapsable tables within Truck Cards provide "Leg-by-Leg" details (Miles, Start/End SOC, Load, Charge Added, and Stop Time).
+- **High Performance**: Parallel fetching patterns ensure that feasibility analysis for an entire fleet remains responsive even for complex routes.
 
 ## 📁 Project Structure
 
 ```text
 .
 ├── /backend          # Python FastAPI services & Physics Engine
-│   ├── main.py       # API Endpoints & Operational Logic
-│   ├── models.py     # Data schemas (Trucks, Routes, Feasibility)
+│   ├── main.py       # API Endpoints & Simulation Logic
+│   ├── models.py     # Data schemas (Trucks, Routes, Feasibility, Legs)
 │   └── requirements.txt
 ├── /frontend         # Vite React + TypeScript UI
 │   ├── src/components # Modular UI components (TruckCard, RouteCard)
@@ -50,17 +48,19 @@ A conceptual **Electric Semi-Truck Dispatch Dashboard** designed to optimize fle
 
 ### Prerequisites
 - Python 3.8+
-- Node.js 16+
+- Node.js 18+
 
 ### 1. Backend Setup
 ```bash
 cd backend
 python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# Activate:
+#  macOS/Linux: source .venv/bin/activate
+#  Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
-*API will be available at `http://localhost:8000`*
+*API: `http://localhost:8000`*
 
 ### 2. Frontend Setup
 ```bash
@@ -68,5 +68,4 @@ cd frontend
 npm install
 npm run dev
 ```
-*Frontend will be available at `http://localhost:5173`*
-
+*Frontend: `http://localhost:5173`*
