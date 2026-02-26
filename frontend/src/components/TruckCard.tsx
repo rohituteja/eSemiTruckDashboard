@@ -5,9 +5,10 @@ interface TruckCardProps {
     truck: Truck;
     feasibility: FeasibilityResult | null;
     isBestMatch?: boolean;
+    baseTime?: Date;
 }
 
-const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
+const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTime = new Date() }) => {
     const [animatedSoc, setAnimatedSoc] = useState(0);
     const [showLegs, setShowLegs] = useState(false);
 
@@ -88,9 +89,11 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                     </span>
                 );
             case 'charging':
+                const availableTime = new Date(baseTime.getTime() + (truck.charge_eta_mins || 0) * 60000);
+                const timeStr = availableTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Charging — {truck.charge_eta_mins} min
+                        Charging — {truck.charge_eta_mins} min (Avail. {timeStr})
                     </span>
                 );
             case 'maintenance':
@@ -199,6 +202,19 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch }) => {
                                     {feasibility.energy_cost_estimate != null && (
                                         <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
                                             Est. Cost: ${feasibility.energy_cost_estimate.toFixed(2)}
+                                        </span>
+                                    )}
+                                    {feasibility.estimated_trip_time_mins != null && (
+                                        <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
+                                            {(() => {
+                                                const startT = new Date(baseTime.getTime() + (truck.charge_eta_mins || 0) * 60000);
+                                                const endT = new Date(startT.getTime() + feasibility.estimated_trip_time_mins * 60000);
+                                                const startStr = startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                const endStr = endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                const hrs = Math.floor(feasibility.estimated_trip_time_mins / 60);
+                                                const mins = feasibility.estimated_trip_time_mins % 60;
+                                                return `Transit: ${hrs}h ${mins}m (${startStr} → ${endStr})`;
+                                            })()}
                                         </span>
                                     )}
                                 </div>

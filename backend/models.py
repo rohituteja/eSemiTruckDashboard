@@ -54,6 +54,7 @@ class FeasibilityResult(BaseModel):
     energy_required_kwh: float
     charge_time_mins: int | None = None
     total_stop_time_mins: int | None = None
+    estimated_trip_time_mins: int | None = None
     energy_cost_estimate: float | None = None
     stops_required: int = 0
     no_charge_needed: bool = True

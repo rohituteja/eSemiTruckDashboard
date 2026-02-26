@@ -56,6 +56,7 @@ export interface FeasibilityResult {
     energy_required_kwh: number;
     charge_time_mins: number | null;
     total_stop_time_mins: number | null;
+    estimated_trip_time_mins: number | null;
     energy_cost_estimate: number | null;
     stops_required: number;
     no_charge_needed: boolean;

@@ -209,6 +209,20 @@ async def get_route_feasibility(route_id: str):
         })
 
     def simulate_route(truck_initial_load, truck_initial_soc, effective_capacity):
+        # Input Validation: If the truck has 0 capacity or 0 SOC, handle gracefully
+        if effective_capacity <= 0:
+            return {
+                "feasible": False,
+                "arrival_soc": 0.0,
+                "total_energy_kwh": 0.0,
+                "total_charge_time_mins": 0,
+                "total_stop_time_mins": 0,
+                "estimated_trip_time_mins": 0,
+                "stops_required": 0,
+                "no_charge_needed": False,
+                "leg_details": []
+            }
+
         # Determine the minimum payload required at the depot to fulfill all unloads
         sim_load = 0
         min_sim_load = 0
@@ -322,6 +336,8 @@ async def get_route_feasibility(route_id: str):
             curr_load = end_load
 
         tot_stop_time_mins = sum(max(u, c) for u, c in zip(node_unload_times, node_charge_times))
+        drive_time_mins = math.ceil((route.distance_miles / 55.0) * 60.0)
+        estimated_trip_time_mins = drive_time_mins + tot_stop_time_mins
 
         return {
             "feasible": is_feasible,
@@ -329,6 +345,7 @@ async def get_route_feasibility(route_id: str):
             "total_energy_kwh": tot_energy_kwh,
             "total_charge_time_mins": tot_charge_time_mins,
             "total_stop_time_mins": tot_stop_time_mins,
+            "estimated_trip_time_mins": estimated_trip_time_mins,
             "stops_required": tot_stops_required,
             "no_charge_needed": no_charge_req,
             "leg_details": legs
@@ -343,6 +360,7 @@ async def get_route_feasibility(route_id: str):
                 energy_required_kwh=0.0,
                 charge_time_mins=None,
                 total_stop_time_mins=None,
+                estimated_trip_time_mins=None,
                 energy_cost_estimate=None,
                 stops_required=0,
                 no_charge_needed=False,
@@ -405,6 +423,7 @@ async def get_route_feasibility(route_id: str):
             energy_required_kwh=round(sim['total_energy_kwh'], 2),
             charge_time_mins=sim['total_charge_time_mins'],
             total_stop_time_mins=sim['total_stop_time_mins'],
+            estimated_trip_time_mins=sim['estimated_trip_time_mins'],
             energy_cost_estimate=round(sim['total_energy_kwh'] * ENERGY_COST_PER_KWH, 2),
             stops_required=sim['stops_required'],
             no_charge_needed=sim['no_charge_needed'],

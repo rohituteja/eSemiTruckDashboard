@@ -213,6 +213,11 @@ function App() {
             ) : (
               <p className="mt-1 text-sm text-slate-400 font-medium italic">Select a route to calculate operational feasibility</p>
             )}
+            {selectedRouteId && sortedTrucks.length > 0 && (
+              <p className="mt-4 mb-2 text-xs text-slate-500 italic bg-white/50 px-3 py-1.5 rounded-md inline-block border border-slate-100 shadow-sm">
+                Ranked by: no charge needed → least charge time → highest arrival SoC
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-6 relative">
@@ -222,6 +227,7 @@ function App() {
                   truck={truck}
                   feasibility={feasibilityMap[truck.id] || null}
                   isBestMatch={truck.id === bestMatchTruckId}
+                  baseTime={lastRefreshed || new Date()}
                 />
               </div>
             ))}

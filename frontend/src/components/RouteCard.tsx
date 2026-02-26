@@ -54,7 +54,9 @@ const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick, feasibility
                     </div>
                     <div className="flex flex-col">
                         <span className="text-gray-500 text-[11px] uppercase font-semibold">Stops</span>
-                        <span className="text-gray-900 font-bold">{route.stops?.length || 0}</span>
+                        <span className="text-gray-900 font-bold text-xs" title="Stops on route">
+                            {route.stops?.length || 0} <span className="text-gray-400 font-normal">({route.stops?.filter(s => s.has_charger).length || 0} w/ charger)</span>
+                        </span>
                     </div>
                     <div className="flex flex-col">
                         <span className="text-gray-500 text-[11px] uppercase font-semibold">Chargers</span>
