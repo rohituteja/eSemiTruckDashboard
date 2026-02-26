@@ -53,14 +53,20 @@ const RouteCard: FC<RouteCardProps> = ({ route, isSelected, onClick, feasibility
                         <span className="text-gray-900 font-bold">{route.terrain_multiplier}x</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Stops</span>
-                        <span className="text-gray-900 font-bold text-xs" title="Stops on route">
+                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Cargo Stops</span>
+                        <span className="text-gray-900 font-bold text-xs">
                             {route.stops?.length || 0} <span className="text-gray-400 font-normal">({route.stops?.filter(s => s.has_charger).length || 0} w/ charger)</span>
                         </span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Chargers</span>
-                        <span className="text-gray-900 font-bold">{route.charging_stations?.length || 0}</span>
+                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Stations</span>
+                        <span className="text-gray-900 font-bold">{route.charging_stations?.length || 0} <span className="text-gray-400 font-normal">dedicated</span></span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-[11px] uppercase font-semibold">Total Chargers</span>
+                        <span className="text-indigo-600 font-bold">
+                            {(route.charging_stations?.length || 0) + (route.stops?.filter(s => s.has_charger).length || 0)}
+                        </span>
                     </div>
                 </div>
             </div>

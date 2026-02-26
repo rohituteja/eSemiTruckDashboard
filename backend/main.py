@@ -61,10 +61,10 @@ MOCK_ROUTES = [
         id="R-04", name="Silicon Valley Express", distance_miles=340.0, elevation_gain_ft=890.0, 
         priority="urgent", terrain_multiplier=1.18, base_consumption=1.8,
         stops=[
-            Stop(mile_marker=120.0, unload_lbs=0.0, pickup_lbs=30000.0, has_charger=False),
+            Stop(mile_marker=120.0, unload_lbs=0.0, pickup_lbs=30000.0, has_charger=True, charge_rate_kw=150.0),
             Stop(mile_marker=280.0, unload_lbs=30000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=250.0)
         ],
-        charging_stations=[]
+        charging_stations=[ChargingStation(mile_marker=200.0, charge_rate_kw=200.0)]
     ),
     Route(
         id="R-05", name="Cascade Corridor", distance_miles=390.0, elevation_gain_ft=1200.0, 
@@ -79,31 +79,48 @@ MOCK_ROUTES = [
         id="R-06", name="Pacific Coast Interstate", distance_miles=620.0, elevation_gain_ft=1800.0, 
         priority="standard", terrain_multiplier=1.2, base_consumption=1.8,
         stops=[
-            Stop(mile_marker=200.0, unload_lbs=25000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=300.0),
-            Stop(mile_marker=450.0, unload_lbs=0.0, pickup_lbs=18000.0, has_charger=True, charge_rate_kw=250.0)
+            Stop(mile_marker=200.0, unload_lbs=25000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=350.0),
+            Stop(mile_marker=450.0, unload_lbs=0.0, pickup_lbs=18000.0, has_charger=True, charge_rate_kw=350.0)
         ],
-        charging_stations=[ChargingStation(mile_marker=350.0, charge_rate_kw=200.0)]
+        charging_stations=[
+            ChargingStation(mile_marker=80.0, charge_rate_kw=150.0),
+            ChargingStation(mile_marker=350.0, charge_rate_kw=250.0),
+            ChargingStation(mile_marker=540.0, charge_rate_kw=300.0)
+        ]
     ),
     Route(
         id="R-07", name="Desert Southwest Haul", distance_miles=780.0, elevation_gain_ft=2200.0, 
         priority="urgent", terrain_multiplier=1.3, base_consumption=1.8,
         stops=[
-            Stop(mile_marker=180.0, unload_lbs=30000.0, pickup_lbs=0.0, has_charger=False),
+            Stop(mile_marker=180.0, unload_lbs=30000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=350.0),
             Stop(mile_marker=480.0, unload_lbs=0.0, pickup_lbs=20000.0, has_charger=True, charge_rate_kw=350.0),
-            Stop(mile_marker=680.0, unload_lbs=20000.0, pickup_lbs=0.0, has_charger=False)
+            Stop(mile_marker=680.0, unload_lbs=20000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=350.0)
         ],
-        charging_stations=[ChargingStation(mile_marker=320.0, charge_rate_kw=300.0)]
+        charging_stations=[
+            ChargingStation(mile_marker=100.0, charge_rate_kw=300.0),
+            ChargingStation(mile_marker=250.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=320.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=400.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=580.0, charge_rate_kw=350.0)
+        ]
     ),
     Route(
         id="R-08", name="Rocky Mountain Freight", distance_miles=890.0, elevation_gain_ft=4800.0, 
         priority="standard", terrain_multiplier=1.45, base_consumption=1.8,
         stops=[
-            Stop(mile_marker=250.0, unload_lbs=18000.0, pickup_lbs=12000.0, has_charger=True, charge_rate_kw=300.0),
-            Stop(mile_marker=600.0, unload_lbs=12000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=250.0)
+            Stop(mile_marker=250.0, unload_lbs=18000.0, pickup_lbs=12000.0, has_charger=True, charge_rate_kw=350.0),
+            Stop(mile_marker=600.0, unload_lbs=12000.0, pickup_lbs=0.0, has_charger=True, charge_rate_kw=350.0)
         ],
         charging_stations=[
-            ChargingStation(mile_marker=120.0, charge_rate_kw=200.0),
-            ChargingStation(mile_marker=450.0, charge_rate_kw=350.0)
+            ChargingStation(mile_marker=60.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=120.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=200.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=280.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=350.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=450.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=500.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=700.0, charge_rate_kw=350.0),
+            ChargingStation(mile_marker=800.0, charge_rate_kw=350.0)
         ]
     ),
     Route(
@@ -117,8 +134,7 @@ MOCK_ROUTES = [
         ],
         charging_stations=[
             ChargingStation(mile_marker=180.0, charge_rate_kw=200.0),
-            ChargingStation(mile_marker=550.0, charge_rate_kw=300.0),
-            ChargingStation(mile_marker=950.0, charge_rate_kw=350.0)
+            ChargingStation(mile_marker=550.0, charge_rate_kw=300.0)
         ]
     ),
     Route(
@@ -133,7 +149,6 @@ MOCK_ROUTES = [
         charging_stations=[
             ChargingStation(mile_marker=200.0, charge_rate_kw=250.0),
             ChargingStation(mile_marker=620.0, charge_rate_kw=350.0),
-            ChargingStation(mile_marker=1050.0, charge_rate_kw=300.0),
             ChargingStation(mile_marker=1450.0, charge_rate_kw=350.0)
         ]
     ),
