@@ -10,20 +10,22 @@ The engine performs a leg-by-leg simulation rather than using static range estim
 - **Dynamic Payload**: Adjusts vehicle weight at each stop based on unload/pickup tasks, impacting consumption for all subsequent legs.
 - **Look-Ahead Charging**: At each charger, the engine calculates the specific kWh requirement to reach the next viable charging node or destination with a safety margin.
 - **Pre-Charge Logic**: If a truck's current State of Charge (SoC) is insufficient but its capacity is adequate, the engine calculates the specific time required to charge at the depot before dispatch.
-- **Trip Time Estimation**: Total mission time is calculated as `(distance / 55 mph) + simulated_stop_time`. Stop time includes mandatory 30-minute unloading/loading cycles and calculated charging durations.
+- **Trip Time Estimation**: Total mission time is calculated as `(distance / 55 mph) + simulated_stop_time`. Stop time includes mandatory 30-minute unloading/loading cycles, calculated en-route charging, and **required depot pre-charge durations** to ensure mission viability.
 - **Cost Estimation**: Estimates energy expenses using a fixed rate of $0.15 per kWh applied to the total predicted energy consumption for the route.
 - **Operational Sorting**: When a route is selected, the fleet is sorted by dispatch readiness: 
   1. No charge needed (Green)
-  2. Least charge time required
+  2. Least charge time required (including pre-charge)
   3. Highest predicted arrival SoC
 
 ### Frontend: Mission Control UI (React + TypeScript)
-- **High-Density Data**: Displays real-time fleet telemetry and feasibility status across multiple route scenarios.
-- **Stop-Level Transparency**: Explicitly indicates which waypoints on a route contain charging infrastructure, allowing for better operational planning. Leg details accurately label targets (e.g., Depot, Stop 1, Charger 1, Destination) and inline charger availability.
-- **Wall Clock Dispatching**: Shows specific "Available at HH:MM" times for charging trucks and "Departure to Arrival" timelines for planned missions, anchored to the last dashboard refresh time.
+- **High-Density Data**: Displays real-time fleet telemetry (SoC, SoH, Estimated Range) and feasibility status across multiple route scenarios.
+- **Intelligent Dispatching**: Uses a "Best Match" algorithm to highlight the most efficient truck for a selected route based on current battery state and load capacity.
+- **Stop-Level Transparency**: Explicitly indicates which waypoints on a route contain charging infrastructure. Leg details accurately label targets (Depot, Stops, Chargers, Destination) and inline charger availability.
+- **Timeline Accuracy**: Shows specific "Available at HH:MM" times for charging trucks and "Departure to Arrival" timelines for planned missions, **now accounting for mandatory depot pre-charging** before the clock starts on the transit window.
 - **Simulation Transparency**: Provides a "Leg Detail" audit trail for every result, showing SoC deltas, energy added, and load changes per segment.
-- **Clear Infeasibility Reporting**: Explicitly explains why a route is designated as infeasible (e.g., insufficient battery capacity between available chargers), reducing ambiguity for dispatchers.
-- **Performance**: Uses parallel fetching to evaluate the entire fleet's compatibility for a selected route without UI blocking.
+- **Unified Pre-Charge Reporting**: A dedicated banner notifies dispatchers of required depot pre-charging (~min/kWh) regardless of the truck's overall feasibility status, ensuring no hidden charging delays.
+- **Confirmed Dispatch Workflow**: A scripted authorization flow ensures dispatchers confirm mission parameters before sending instructions to the vehicle.
+
 
 ## Engineering Decisions & Tradeoffs
 

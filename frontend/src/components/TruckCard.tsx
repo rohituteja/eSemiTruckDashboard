@@ -63,7 +63,11 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
     // Helper formatting logic placed inline in the table
 
     const handleDispatch = () => {
-        alert(`Truck ${truck.id} (${truck.name}) dispatched!`);
+        console.log(`[DISPATCH] Truck ${truck.id} (${truck.name}) authorized for route.`);
+        const confirmResult = window.confirm(`Confirm dispatch for ${truck.name} to start mission?`);
+        if (confirmResult) {
+            alert(`Dispatch signal sent to ${truck.name}. Mission active.`);
+        }
     };
 
     // Status badge logic
@@ -75,7 +79,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                         Ready
                     </span>
                 );
-            case 'charging':
+            case 'charging': {
                 const availableTime = new Date(baseTime.getTime() + (truck.charge_eta_mins || 0) * 60000);
                 const timeStr = availableTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
@@ -83,6 +87,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                         Charging — {truck.charge_eta_mins} min (Avail. {timeStr})
                     </span>
                 );
+            }
             case 'maintenance':
                 return (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
@@ -194,7 +199,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                     {feasibility.estimated_trip_time_mins != null && (
                                         <span className="px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-100">
                                             {(() => {
-                                                const startT = new Date(baseTime.getTime() + (truck.charge_eta_mins || 0) * 60000);
+                                                const startT = new Date(baseTime.getTime() + ((truck.charge_eta_mins || 0) + (feasibility.precharge_mins || 0)) * 60000);
                                                 const endT = new Date(startT.getTime() + feasibility.estimated_trip_time_mins * 60000);
                                                 const startStr = startT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                                 const endStr = endT.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -275,32 +280,30 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                     </div>
                                 )}
 
-                                {feasibility.status === 'red' && (
-                                    <>
-                                        {feasibility.feasible_after_precharge ? (
-                                            <div className="mt-2 text-[10px] bg-amber-50 border border-amber-200 rounded p-2">
-                                                <p className="font-bold text-amber-800 flex items-center gap-1 mb-1">
-                                                    <span>⚡</span> Available after depot pre-charge
-                                                </p>
-                                                <p className="text-amber-700">
-                                                    Charge needed: <span className="font-bold">{feasibility.precharge_kwh?.toFixed(1)} kWh</span> (~{feasibility.precharge_mins} min at 150 kW)
-                                                </p>
-                                                <p className="text-amber-600 italic mt-1">
-                                                    After charging, this truck can complete the route.
-                                                </p>
-                                            </div>
-                                        ) : !showLegs && (
-                                            <div className="mt-2 text-[10px] bg-red-50 border border-red-200 rounded p-2">
-                                                <p className="font-bold text-red-600 flex items-center gap-1 mb-1">
-                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                                    INFEASIBLE ROUTE
-                                                </p>
-                                                <p className="text-red-700">
-                                                    Truck battery capacity is insufficient for the distance between available chargers <span className="text-yellow-500 font-bold" title="Charger icon">⚡</span>. Adding chargers to intermediate stops would be required to make this route feasible.
-                                                </p>
-                                            </div>
-                                        )}
-                                    </>
+                                {feasibility.feasible_after_precharge && (
+                                    <div className="mt-2 text-[10px] bg-amber-50 border border-amber-200 rounded p-2">
+                                        <p className="font-bold text-amber-800 flex items-center gap-1 mb-1">
+                                            <span>⚡</span> Available after depot pre-charge
+                                        </p>
+                                        <p className="text-amber-700">
+                                            Charge needed: <span className="font-bold">{feasibility.precharge_kwh?.toFixed(1)} kWh</span> (~{feasibility.precharge_mins} min at 150 kW)
+                                        </p>
+                                        <p className="text-amber-600 italic mt-1">
+                                            After charging, this truck can complete the route.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {feasibility.status === 'red' && !feasibility.feasible_after_precharge && !showLegs && (
+                                    <div className="mt-2 text-[10px] bg-red-50 border border-red-200 rounded p-2">
+                                        <p className="font-bold text-red-600 flex items-center gap-1 mb-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                            INFEASIBLE ROUTE
+                                        </p>
+                                        <p className="text-red-700">
+                                            Truck battery capacity is insufficient for the distance between available chargers <span className="text-yellow-500 font-bold" title="Charger icon">⚡</span>. Adding chargers to intermediate stops would be required to make this route feasible.
+                                        </p>
+                                    </div>
                                 )}
                             </>
                         )}

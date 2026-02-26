@@ -322,7 +322,7 @@ async def get_route_feasibility(route_id: str):
                     no_charge_req = False
                     used_charger = True
 
-            # --- STEP 2: Drive to the ARRIVAL node ---
+            # --- STEP 2: Drive ---
             start_soc = curr_soc
             will_arrive_soc = curr_soc - energy_needed_soc
             if will_arrive_soc < MIN_BUFFER_SOC - 1e-9:
