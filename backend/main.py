@@ -262,7 +262,6 @@ async def get_route_feasibility(route_id: str):
         curr_load = max(truck_initial_load, required_depot_payload)
         
         tot_charge_time_mins = 0
-        tot_unload_time_mins = 0
         tot_stops_required = 0
         
         node_unload_times = [0] * len(nodes)
@@ -271,7 +270,6 @@ async def get_route_feasibility(route_id: str):
         # If the route requires a load (unload before sufficient pickups), we must have loaded it at the depot.
         # Add 30 minutes for loading at the depot before dispatch.
         if required_depot_payload > 0:
-            tot_unload_time_mins += 30
             node_unload_times[0] = 30
 
         no_charge_req = True
@@ -340,7 +338,6 @@ async def get_route_feasibility(route_id: str):
                 unload_lbs = to_node.get('unload_lbs', 0)
                 pickup_lbs = to_node.get('pickup_lbs', 0)
                 end_load = max(0, curr_load - unload_lbs + pickup_lbs)
-                tot_unload_time_mins += 30
                 node_unload_times[i + 1] = 30
                 tot_stops_required += 1
 
@@ -421,8 +418,18 @@ async def get_route_feasibility(route_id: str):
                         low = mid
                 
                 feasible_after_precharge = True
-                precharge_kwh = (min_required_soc - (truck.soc / 100)) * effective_capacity
-                precharge_mins = math.ceil(precharge_kwh / 150 * 60) # Depot charger 150 kW
+                # precharge_kwh = (min_required_soc - (truck.soc / 100)) * effective_capacity
+                # precharge_mins = math.ceil(precharge_kwh / 150 * 60) # Depot charger 150 kW
+
+                # For charging trucks, credit the charge already in progress
+                soc_after_current_charge = min(1.0, (truck.soc / 100) + (truck.charge_eta_mins or 0) / 60 * 150 / effective_capacity)
+                if soc_after_current_charge >= min_required_soc:
+                    precharge_kwh = 0
+                    precharge_mins = 0
+                    feasible_after_precharge = False  # No extra pre-charge needed
+                else:
+                    precharge_kwh = (min_required_soc - soc_after_current_charge) * effective_capacity
+                    precharge_mins = math.ceil(precharge_kwh / 150 * 60)
                 
                 # Final pass to get accurate details
                 sim = simulate_route(truck.load_lbs, min_required_soc, effective_capacity)
@@ -432,6 +439,8 @@ async def get_route_feasibility(route_id: str):
             status = "red"
         elif feasible_after_precharge:
             status = "yellow"
+        elif not sim['no_charge_needed']:
+            status = "yellow"  # needs en-route charging
         else:
             status = "green"
             
