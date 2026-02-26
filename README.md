@@ -10,9 +10,17 @@ The engine performs a leg-by-leg simulation rather than using static range estim
 - **Dynamic Payload**: Adjusts vehicle weight at each stop based on unload/pickup tasks, impacting consumption for all subsequent legs.
 - **Look-Ahead Charging**: At chaque charger, the engine calculates the specific kWh requirement to reach the next viable charging node or destination with a safety margin.
 - **Pre-Charge Logic**: If a truck's current State of Charge (SoC) is insufficient but its capacity is adequate, the engine calculates the specific time required to charge at the depot before dispatch.
+- **Trip Time Estimation**: Total mission time is calculated as `(distance / 55 mph) + simulated_stop_time`. Stop time includes mandatory 30-minute unloading/loading cycles and calculated charging durations.
+- **Cost Estimation**: Estimates energy expenses using a fixed rate of **$0.15 per kWh** applied to the total predicted energy consumption for the route.
+- **Operational Sorting**: When a route is selected, the fleet is sorted by dispatch readiness: 
+  1. No charge needed (Green) 
+  2. Least charge time required 
+  3. Highest predicted arrival SoC.
 
 ### Frontend: Mission Control UI (React + TypeScript)
 - **High-Density Data**: Displays real-time fleet telemetry and feasibility status across multiple route scenarios.
+- **Stop-Level Transparency**: Explicitly indicates which waypoints on a route contain charging infrastructure (e.g., `2 stops (1 w/ charger)`), allowing for better operational planning.
+- **Wall Clock Dispatching**: Shows specific "Available at HH:MM" times for charging trucks and "Departure → Arrival" timelines for planned missions, anchored to the last dashboard refresh time.
 - **Simulation Transparency**: Provides a "Leg Detail" audit trail for every result, showing SoC deltas, energy added, and load changes per segment.
 - **Performance**: Uses parallel fetching to evaluate the entire fleet's compatibility for a selected route without UI blocking.
 
@@ -24,6 +32,7 @@ The engine performs a leg-by-leg simulation rather than using static range estim
   - *Rationale*: Critical to account for unforeseen traffic, thermal management, and battery health (SoH).
 - **Efficiency Heuristics**: Status (Green/Yellow/Red) is determined by the ratio of charging downtime to total transit distance.
   - *Tradeoff*: Simpler than ML-based ETA prediction but provides immediate, explainable results for dispatchers.
+- **Input Validation**: Added robust checks for `effective_capacity <= 0` to handle edge cases like severe battery degradation (SoH) or critical maintenance states gracefully within the simulation engine.
 - **Depot Integration**: The depot is modeled as a 150kW charging node to facilitate "Ready for Dispatch" calculations for trucks currently below mission-required SoC.
 
 ## Tech Stack
