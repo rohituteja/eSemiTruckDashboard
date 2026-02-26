@@ -428,19 +428,12 @@ async def get_route_feasibility(route_id: str):
                 sim = simulate_route(truck.load_lbs, min_required_soc, effective_capacity)
 
         # Status logic
-        green_limit_mins = 60 + route.distance_miles * 0.2
-        yellow_limit_mins = 120 + route.distance_miles * 0.4
-        
-        if not sim['feasible']:
+        if not sim['feasible'] and not feasible_after_precharge:
             status = "red"
-        elif sim['no_charge_needed']:
-            status = "green"
-        elif sim['total_charge_time_mins'] < green_limit_mins:
-            status = "green"
-        elif sim['total_charge_time_mins'] < yellow_limit_mins:
+        elif feasible_after_precharge:
             status = "yellow"
         else:
-            status = "red"
+            status = "green"
             
         results.append(FeasibilityResult(
             truck_id=truck.id,

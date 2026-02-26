@@ -31,6 +31,17 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
     const getFeasibilityStyles = () => {
         if (!feasibility || feasibility.not_available) return 'border-gray-200 bg-white';
 
+        const hasWaitTime = (truck.charge_eta_mins || 0) > 0 || (feasibility.precharge_mins || 0) > 0;
+
+        // If it's feasible but needs any charge/wait time, show amber (yellow)
+        if (feasibility.status === 'green' && hasWaitTime) {
+            return 'border-l-amber-500 border-l-4 bg-white shadow-sm';
+        }
+
+        if (feasibility.feasible_after_precharge) {
+            return 'border-l-amber-500 border-l-4 bg-white shadow-sm';
+        }
+
         switch (feasibility.status) {
             case 'green':
                 return 'border-l-green-500 border-l-4 bg-white shadow-sm';
@@ -45,6 +56,12 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
 
     const getFeasibilityBadgeStyles = () => {
         if (!feasibility) return '';
+        const hasWaitTime = (truck.charge_eta_mins || 0) > 0 || (feasibility.precharge_mins || 0) > 0;
+
+        if (feasibility.feasible_after_precharge || (feasibility.status === 'green' && hasWaitTime)) {
+            return 'bg-amber-100 text-amber-800';
+        }
+
         switch (feasibility.status) {
             case 'green': return 'bg-green-100 text-green-800';
             case 'yellow': return 'bg-yellow-100 text-yellow-800';
@@ -72,6 +89,56 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
 
     // Status badge logic
     const renderStatusBadge = () => {
+        const totalWaitMins = (truck.charge_eta_mins || 0) + (feasibility?.precharge_mins || 0);
+        const availableTime = new Date(baseTime.getTime() + totalWaitMins * 60000);
+        const timeStr = availableTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // CASE 1: Feasible-after-precharge (Explicitly marked as needing depot charge)
+        if (feasibility && feasibility.feasible_after_precharge) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                    Pre-charge — {totalWaitMins} min (Avail. {timeStr})
+                </span>
+            );
+        }
+
+        // CASE 2: Feasible now, but still charging/waiting for some reason
+        if (feasibility && feasibility.status === 'green' && totalWaitMins > 0) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                    Wait for Charge — {totalWaitMins}m (Ready {timeStr})
+                </span>
+            );
+        }
+
+        // CASE 3: Yellow feasibility (Requires charge to BE feasible)
+        if (feasibility && feasibility.status === 'yellow') {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                    Needs {totalWaitMins}m depot charge (Avail. {timeStr})
+                </span>
+            );
+        }
+
+        // CASE 4: Truly ready now
+        if (feasibility && feasibility.status === 'green' && totalWaitMins === 0) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Ready
+                </span>
+            );
+        }
+
+        // CASE 5: Infeasible
+        if (feasibility && feasibility.status === 'red') {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                    Infeasible
+                </span>
+            );
+        }
+
+        // Default cases (No feasibility context)
         switch (truck.status) {
             case 'ready':
                 return (
@@ -80,11 +147,17 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                     </span>
                 );
             case 'charging': {
-                const availableTime = new Date(baseTime.getTime() + (truck.charge_eta_mins || 0) * 60000);
-                const timeStr = availableTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (!feasibility) {
+                    return (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            Charging — Full in {totalWaitMins}m ({timeStr})
+                        </span>
+                    );
+                }
+
                 return (
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Charging — {truck.charge_eta_mins} min (Avail. {timeStr})
+                        Charging — {totalWaitMins} min (Avail. {timeStr})
                     </span>
                 );
             }
@@ -178,7 +251,21 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                         </span>
                                         {!feasibility.no_charge_needed && feasibility.charge_time_mins && (
                                             <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-yellow-50 text-yellow-700">
-                                                +{Math.floor(feasibility.charge_time_mins / 60)}h {feasibility.charge_time_mins % 60}m added
+                                                {(() => {
+                                                    // Calculate overlapping time where charging happens during load/unload
+                                                    const overlapMins = feasibility.leg_details.reduce((acc, leg) => {
+                                                        if (leg.used_charger && (leg.unload_lbs > 0 || leg.pickup_lbs > 0)) {
+                                                            // Assume 30 mins for load/unload per stop, but don't subtract more than the leg's charge time
+                                                            return acc + Math.min(30, leg.charge_time_mins);
+                                                        }
+                                                        return acc;
+                                                    }, 0);
+
+                                                    const netChargeMins = Math.max(0, (feasibility.charge_time_mins || 0) - overlapMins);
+                                                    const hrs = Math.floor(netChargeMins / 60);
+                                                    const mins = netChargeMins % 60;
+                                                    return `+${hrs}h ${mins}m added`;
+                                                })()}
                                             </span>
                                         )}
                                         <span className="px-2 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-700">
@@ -280,19 +367,6 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                     </div>
                                 )}
 
-                                {feasibility.feasible_after_precharge && (
-                                    <div className="mt-2 text-[10px] bg-amber-50 border border-amber-200 rounded p-2">
-                                        <p className="font-bold text-amber-800 flex items-center gap-1 mb-1">
-                                            <span>⚡</span> Available after depot pre-charge
-                                        </p>
-                                        <p className="text-amber-700">
-                                            Charge needed: <span className="font-bold">{feasibility.precharge_kwh?.toFixed(1)} kWh</span> (~{feasibility.precharge_mins} min at 150 kW)
-                                        </p>
-                                        <p className="text-amber-600 italic mt-1">
-                                            After charging, this truck can complete the route.
-                                        </p>
-                                    </div>
-                                )}
 
                                 {feasibility.status === 'red' && !feasibility.feasible_after_precharge && !showLegs && (
                                     <div className="mt-2 text-[10px] bg-red-50 border border-red-200 rounded p-2">

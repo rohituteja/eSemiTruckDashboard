@@ -66,17 +66,25 @@ function App() {
 
   const feasibilitySummary = useMemo(() => {
     if (!selectedRouteId) return null;
-    const results = Object.values(feasibilityMap);
+    const results = Object.entries(feasibilityMap);
     if (results.length === 0) return null;
 
     const stats = { green: 0, yellow: 0, red: 0 };
-    results.forEach(f => {
-      if (f.status === 'green') stats.green++;
-      else if (f.status === 'yellow') stats.yellow++;
-      else if (f.status === 'red') stats.red++;
+    results.forEach(([truckId, f]) => {
+      const truck = trucks.find(t => t.id === truckId);
+      const totalWaitMins = (truck?.charge_eta_mins || 0) + (f.precharge_mins || 0);
+
+      if (f.status === 'green' && totalWaitMins === 0) {
+        stats.green++;
+      } else if (f.status === 'red') {
+        stats.red++;
+      } else {
+        // Includes Yellow status OR Green status with wait time
+        stats.yellow++;
+      }
     });
     return stats;
-  }, [feasibilityMap, selectedRouteId]);
+  }, [feasibilityMap, selectedRouteId, trucks]);
 
   const sortedTrucks = useMemo(() => {
     if (!selectedRouteId) return trucks;
@@ -91,18 +99,24 @@ function App() {
         return feasA.not_available ? 1 : -1;
       }
 
-      // b. status === 'green' && no_charge_needed → first
-      const isAFirst = feasA.status === 'green' && feasA.no_charge_needed;
-      const isBFirst = feasB.status === 'green' && feasB.no_charge_needed;
-      if (isAFirst !== isBFirst) {
-        return isAFirst ? -1 : 1;
+      // b. status === 'red' → last
+      const isARed = feasA.status === 'red';
+      const isBRed = feasB.status === 'red';
+      if (isARed !== isBRed) {
+        return isARed ? 1 : -1;
       }
 
-      // c. then by charge_time_mins ascending (treat null as 0)
-      const chargeA = feasA.charge_time_mins ?? 0;
-      const chargeB = feasB.charge_time_mins ?? 0;
-      if (chargeA !== chargeB) {
-        return chargeA - chargeB;
+      // c. sort by lowest total optimal time
+      const getTotalTime = (f: FeasibilityResult, t: Truck) => {
+        return (f.estimated_trip_time_mins !== null ? f.estimated_trip_time_mins : Number.MAX_SAFE_INTEGER) +
+          (f.precharge_mins || 0) +
+          (t.status === 'charging' ? (t.charge_eta_mins || 0) : 0);
+      };
+
+      const timeA = getTotalTime(feasA, a);
+      const timeB = getTotalTime(feasB, b);
+      if (timeA !== timeB) {
+        return timeA - timeB;
       }
 
       // d. then by arrival_soc descending
@@ -114,7 +128,10 @@ function App() {
     if (!selectedRouteId) return null;
     const best = sortedTrucks.find(truck => {
       const feasibility = feasibilityMap[truck.id];
-      return feasibility?.status === 'green' && (truck.status === 'ready' || truck.status === 'charging');
+      const totalWaitMins = (truck.charge_eta_mins || 0) + (feasibility?.precharge_mins || 0);
+      return feasibility?.status === 'green'
+        && !feasibility.feasible_after_precharge
+        && totalWaitMins === 0;
     });
     return best?.id || null;
   }, [sortedTrucks, feasibilityMap, selectedRouteId]);
@@ -215,7 +232,7 @@ function App() {
             )}
             {selectedRouteId && sortedTrucks.length > 0 && (
               <p className="mt-4 mb-2 text-xs text-slate-500 italic bg-white/50 px-3 py-1.5 rounded-md inline-block border border-slate-100 shadow-sm">
-                Ranked by: no charge needed → least charge time → highest arrival SoC
+                Ranked by: easiest complete trip → lowest optimal total time
               </p>
             )}
           </div>
@@ -244,11 +261,20 @@ function App() {
           <div className="grid grid-cols-1 gap-4">
             {routes.map(route => {
               const routeResults = allRouteFeasibility[route.id] || [];
-              const summary = routeResults.length > 0 ? {
-                green: routeResults.filter(f => f.status === 'green').length,
-                yellow: routeResults.filter(f => f.status === 'yellow').length,
-                red: routeResults.filter(f => f.status === 'red').length,
-              } : null;
+              const summary = routeResults.length > 0 ? routeResults.reduce((acc, f) => {
+                const truck = trucks.find(t => t.id === f.truck_id);
+                const totalWaitMins = (truck?.charge_eta_mins || 0) + (f.precharge_mins || 0);
+
+                if (f.status === 'green' && totalWaitMins === 0) {
+                  acc.green++;
+                } else if (f.status === 'red') {
+                  acc.red++;
+                } else {
+                  // Any wait time or yellow status
+                  acc.yellow++;
+                }
+                return acc;
+              }, { green: 0, yellow: 0, red: 0 }) : null;
 
               return (
                 <RouteCard
