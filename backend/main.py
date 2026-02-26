@@ -175,12 +175,17 @@ async def get_route_feasibility(route_id: str):
     
     # Build waypoints
     waypoints = []
+    charger_idx = 1
     for cs in route.charging_stations:
         waypoints.append({
             'mile_marker': cs.mile_marker, 
             'type': 'charger', 
-            'charge_rate_kw': cs.charge_rate_kw
+            'charge_rate_kw': cs.charge_rate_kw,
+            'name': f"Charger {charger_idx}"
         })
+        charger_idx += 1
+        
+    stop_idx = 1
     for s in route.stops:
         waypoints.append({
             'mile_marker': s.mile_marker, 
@@ -188,15 +193,18 @@ async def get_route_feasibility(route_id: str):
             'unload_lbs': s.unload_lbs, 
             'pickup_lbs': s.pickup_lbs,
             'has_charger': s.has_charger, 
-            'charge_rate_kw': s.charge_rate_kw
+            'charge_rate_kw': s.charge_rate_kw,
+            'name': f"Stop {stop_idx}"
         })
+        stop_idx += 1
+        
     waypoints.sort(key=lambda x: x['mile_marker'])
-    waypoints.append({'mile_marker': route.distance_miles, 'type': 'destination'})
+    waypoints.append({'mile_marker': route.distance_miles, 'type': 'destination', 'name': 'Destination'})
 
     # Build the full list of nodes the truck visits, starting with the depot (mile 0).
     # Nodes: depot (origin), then each waypoint in order.
     # Depot now has a charger as requested.
-    nodes = [{'mile_marker': 0.0, 'type': 'depot', 'has_charger': True, 'charge_rate_kw': 150.0}]
+    nodes = [{'mile_marker': 0.0, 'type': 'depot', 'has_charger': True, 'charge_rate_kw': 150.0, 'name': 'Depot'}]
     for wp in waypoints:
         has_charger = (wp['type'] == 'charger') or (wp['type'] == 'stop' and wp.get('has_charger'))
         nodes.append({
@@ -206,6 +214,7 @@ async def get_route_feasibility(route_id: str):
             'charge_rate_kw': wp.get('charge_rate_kw'),
             'unload_lbs': wp.get('unload_lbs', 0),
             'pickup_lbs': wp.get('pickup_lbs', 0),
+            'name': wp.get('name', 'Waypoint')
         })
 
     def simulate_route(truck_initial_load, truck_initial_soc, effective_capacity):
@@ -331,7 +340,9 @@ async def get_route_feasibility(route_id: str):
                 charge_added_kwh=round(charge_added_kwh, 2),
                 charge_time_mins=charge_time_mins,
                 unload_lbs=unload_lbs,
-                used_charger=used_charger
+                used_charger=used_charger,
+                end_location_name=to_node.get('name', 'Waypoint'),
+                end_has_charger=to_node.get('has_charger', False)
             ))
             curr_load = end_load
 

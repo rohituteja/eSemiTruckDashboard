@@ -24,6 +24,8 @@ class LegDetail(BaseModel):
     charge_time_mins: int
     unload_lbs: float
     used_charger: bool
+    end_location_name: str = ""
+    end_has_charger: bool = False
 
 class Truck(BaseModel):
     id: str

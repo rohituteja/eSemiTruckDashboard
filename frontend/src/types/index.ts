@@ -47,6 +47,8 @@ export interface LegDetail {
     charge_time_mins: number;
     unload_lbs: number;
     used_charger: boolean;
+    end_location_name: string;
+    end_has_charger: boolean;
 }
 
 export interface FeasibilityResult {

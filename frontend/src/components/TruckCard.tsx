@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import type { Truck, FeasibilityResult, LegDetail } from '../types';
+import type { Truck, FeasibilityResult } from '../types';
 
 interface TruckCardProps {
     truck: Truck;
@@ -60,20 +60,7 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
         return 'bg-red-500';
     };
 
-    // Helper to format stop time for the leg table
-    const formatLegStopTime = (leg: LegDetail) => {
-        const activities = [];
-        if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) activities.push("30 min (unload + pickup)");
-        else if (leg.unload_lbs > 0) activities.push("30 min (unload)");
-        else if (leg.pickup_lbs > 0) activities.push("30 min (pickup)");
-
-        let res = activities[0] || "";
-        if (leg.used_charger && leg.charge_time_mins > 0) {
-            if (res) res += ` + ${leg.charge_time_mins}m charge`;
-            else res = `${leg.charge_time_mins}m charge`;
-        }
-        return res || "—";
-    };
+    // Helper formatting logic placed inline in the table
 
     const handleDispatch = () => {
         alert(`Truck ${truck.id} (${truck.name}) dispatched!`);
@@ -242,30 +229,44 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-slate-100 text-[9px] uppercase tracking-tighter text-gray-500 font-black">
-                                                    <th className="px-1.5 py-1 border-b">Leg</th>
+                                                    <th className="px-1.5 py-1 border-b">Target</th>
                                                     <th className="px-1.5 py-1 border-b">Miles</th>
                                                     <th className="px-1.5 py-1 border-b">Start</th>
                                                     <th className="px-1.5 py-1 border-b">End</th>
                                                     <th className="px-1.5 py-1 border-b text-center">Load In</th>
                                                     <th className="px-1.5 py-1 border-b text-center">Load Out</th>
-                                                    <th className="px-1.5 py-1 border-b text-right">Charged</th>
-                                                    <th className="px-1.5 py-1 border-b text-right">Stop Time</th>
+                                                    <th className="px-1.5 py-1 border-b text-right" title="Charge at start of leg">Dep. Charge</th>
+                                                    <th className="px-1.5 py-1 border-b text-right" title="Activity at target">Arr. Activity</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="text-[10px] font-medium text-gray-700">
                                                 {feasibility.leg_details.map((leg, idx) => (
                                                     <tr key={idx} className={idx % 2 === 0 ? 'bg-slate-50' : 'bg-white'}>
-                                                        <td className="px-1.5 py-1 border-b text-gray-500 font-mono">{leg.leg_number}</td>
+                                                        <td className="px-1.5 py-1 border-b text-gray-700 font-medium whitespace-nowrap">
+                                                            {leg.end_location_name}
+                                                            {leg.end_has_charger && (
+                                                                <span className="ml-1 text-yellow-500" title="Charger available here">⚡</span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-1.5 py-1 border-b">{leg.distance_miles.toFixed(0)}</td>
                                                         <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.start_soc.toFixed(1)}%</td>
-                                                        <td className="px-1.5 py-1 border-b whitespace-nowrap">{leg.end_soc.toFixed(1)}%</td>
+                                                        <td className="px-1.5 py-1 border-b whitespace-nowrap">
+                                                            <span className={leg.end_soc < 15 ? "text-red-500 font-bold" : ""}>
+                                                                {leg.end_soc.toFixed(1)}%
+                                                            </span>
+                                                        </td>
                                                         <td className="px-1.5 py-1 border-b text-center">{(leg.start_load_lbs / 1000).toFixed(1)}k</td>
                                                         <td className="px-1.5 py-1 border-b text-center">{(leg.end_load_lbs / 1000).toFixed(1)}k</td>
                                                         <td className="px-1.5 py-1 border-b text-right whitespace-nowrap">
-                                                            {leg.used_charger ? `${leg.charge_added_kwh.toFixed(1)} kWh` : '—'}
+                                                            {leg.used_charger ? <span className="text-blue-600 font-semibold">{leg.charge_added_kwh.toFixed(1)} kWh <span className="text-gray-400 font-normal text-[9px]">({leg.charge_time_mins}m)</span></span> : '—'}
                                                         </td>
-                                                        <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold">
-                                                            {formatLegStopTime(leg)}
+                                                        <td className="px-1.5 py-1 border-b text-right whitespace-nowrap font-semibold text-gray-600">
+                                                            {(() => {
+                                                                if (leg.unload_lbs > 0 && leg.pickup_lbs > 0) return "30m un/load";
+                                                                if (leg.unload_lbs > 0) return "30m unld";
+                                                                if (leg.pickup_lbs > 0) return "30m pkup";
+                                                                return "—";
+                                                            })()}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -289,10 +290,15 @@ const TruckCard: FC<TruckCardProps> = ({ truck, feasibility, isBestMatch, baseTi
                                                 </p>
                                             </div>
                                         ) : !showLegs && (
-                                            <p className="mt-2 text-[10px] font-bold text-red-600 flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                                INFEASIBLE
-                                            </p>
+                                            <div className="mt-2 text-[10px] bg-red-50 border border-red-200 rounded p-2">
+                                                <p className="font-bold text-red-600 flex items-center gap-1 mb-1">
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                                    INFEASIBLE ROUTE
+                                                </p>
+                                                <p className="text-red-700">
+                                                    Truck battery capacity is insufficient for the distance between available chargers <span className="text-yellow-500 font-bold" title="Charger icon">⚡</span>. Adding chargers to intermediate stops would be required to make this route feasible.
+                                                </p>
+                                            </div>
                                         )}
                                     </>
                                 )}
